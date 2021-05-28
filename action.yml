@@ -1,11 +1,33 @@
-name: 'Your name here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'Repoman'
+description: 'GitHub action for Repoman'
+author: 'moul'
 inputs:
-  milliseconds: # change this
-    required: true
-    description: 'input description here'
-    default: 'default value if applicable'
+  args:
+    description: 'repoman command line arguments'
+    default: '.'
+    required: false
+  version:
+    description: 'version of repoman to use in form of v1.2 or v1.2.3 or `latest` to use the latest version'
+    required: false
+    default: latest
+  #github-token:
+  #  description: "the token is used for ..."
+  #  default: ${{ github.token }}
+  #  required: true
+outputs:
+  version:
+    description: 'the version of Repoman'
+  has-go:
+    description: 'whether repoman detected the presence of go code'
+  has-go-binary:
+    description: 'whether repoman detected the presence of go binary'
+  has-go-library:
+    description: 'whether repoman detected the presence of go library'
+  has-docker:
+    description: 'whether repoman detected the presence of docker code in the repo'
 runs:
   using: 'node12'
   main: 'dist/index.js'
+branding:
+  icon: 'target'
+  color: 'purple'

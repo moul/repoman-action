@@ -11,14 +11,44 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: |
-          npm install
-      - run: |
-          npm run all
+        with:
+          fetch-depth: '0'
+      - run: npm install
+      - run: npm run build
+      - run: npm run format
+      - run: npm run lint
+      - run: npm run package
+      - run: npm run test
   test: # make sure the action works on a clean machine without building
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os:
+          - ubuntu
+          - macos
+          - windows
+        version:
+          #- ''
+          #- v1
+          #- v1.4
+          #- v1.4.2
+          - latest
+        sample:
+          - go-binary-docker
+          # TODO: non-git, dirty, non-bin, non-docker, etc
+    runs-on: ${{ matrix.os }}-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: ./
         with:
-          milliseconds: 1000
+          fetch-depth: '0' # fixme should works without this too
+      - uses: ./
+        id: repoman
+        with:
+          version: ${{ matrix.version }}
+          args: ./_samples/${{ matrix.sample }}
+      - name: Check outputs
+        run: |
+          echo "version = ${{ steps.repoman.outputs.version }}"
+          echo "has-go = ${{ steps.repoman.outputs.has-go }}"
+          echo "has-go-library = ${{ steps.repoman.outputs.has-go-library }}"
+          echo "has-go-binary = ${{ steps.repoman.outputs.has-go-binary }}"
+          echo "has-docker = ${{ steps.repoman.outputs.has-docker }}"
