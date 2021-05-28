@@ -1,2 +1,3 @@
-# repoman-action
-GitHub action for repoman
+# GitHub Action for Repoman
+
+https://github.com/moul/repoman
