@@ -32,25 +32,44 @@ jobs:
           #- v1.4
           #- v1.4.2
           - latest
-        sample:
-          - go-binary-docker
-          - go-binary
-          - go-library
-          # TODO: non-git, dirty, non-bin, non-docker, etc
     runs-on: ${{ matrix.os }}-latest
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: '0' # fixme should works without this too
       - uses: ./
-        id: repoman
+        id: repoman1
         with:
           version: ${{ matrix.version }}
-          args: ./_samples/${{ matrix.sample }}
+          args: ./_samples/go-binary-docker
       - name: Check outputs
         run: |
-          echo "version = ${{ steps.repoman.outputs.version }}"
-          echo "has-go = ${{ steps.repoman.outputs.has-go }}"
-          echo "has-go-library = ${{ steps.repoman.outputs.has-go-library }}"
-          echo "has-go-binary = ${{ steps.repoman.outputs.has-go-binary }}"
-          echo "has-docker = ${{ steps.repoman.outputs.has-docker }}"
+          echo "version = ${{ steps.repoman1.outputs.version }}"
+          echo "has-go = ${{ steps.repoman1.outputs.has-go }}"
+          echo "has-go-library = ${{ steps.repoman1.outputs.has-go-library }}"
+          echo "has-go-binary = ${{ steps.repoman1.outputs.has-go-binary }}"
+          echo "has-docker = ${{ steps.repoman1.outputs.has-docker }}"
+      - uses: ./
+        id: repoman2
+        with:
+          version: ${{ matrix.version }}
+          args: ./_samples/go-binary
+      - name: Check outputs
+        run: |
+          echo "version = ${{ steps.repoman2.outputs.version }}"
+          echo "has-go = ${{ steps.repoman2.outputs.has-go }}"
+          echo "has-go-library = ${{ steps.repoman2.outputs.has-go-library }}"
+          echo "has-go-binary = ${{ steps.repoman2.outputs.has-go-binary }}"
+          echo "has-docker = ${{ steps.repoman2.outputs.has-docker }}"
+      - uses: ./
+        id: repoman3
+        with:
+          version: ${{ matrix.version }}
+          args: ./_samples/go-library
+      - name: Check outputs
+        run: |
+          echo "version = ${{ steps.repoman3.outputs.version }}"
+          echo "has-go = ${{ steps.repoman3.outputs.has-go }}"
+          echo "has-go-library = ${{ steps.repoman3.outputs.has-go-library }}"
+          echo "has-go-binary = ${{ steps.repoman3.outputs.has-go-binary }}"
+          echo "has-docker = ${{ steps.repoman3.outputs.has-docker }}"
