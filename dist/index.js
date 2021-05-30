@@ -45,10 +45,35 @@ const path_1 = __importDefault(__webpack_require__(622));
 const os_1 = __importDefault(__webpack_require__(87));
 const util_1 = __webpack_require__(669);
 const child_process_1 = __webpack_require__(129);
-const downloadURL = 'https://github.com/moul/repoman/releases/download';
-const getAssetURL = (version) => {
-    if (version === 'latest') {
-        version = 'v1.4.3'; // FIXME: make dynamic
+const httpm = __importStar(__webpack_require__(925));
+const getAsset = (version) => __awaiter(void 0, void 0, void 0, function* () {
+    const versionRe = /^v(\d+)(?:\.(\d+))?$/;
+    if (version === 'latest' || version.match(versionRe)) {
+        core.debug(`version is set to ${version}, getting the latest version from assets-config.json`);
+        const http = new httpm.HttpClient(`moul/repoman-action`, [], {
+            allowRetries: true,
+            maxRetries: 5
+        });
+        try {
+            const url = 'https://raw.githubusercontent.com/moul/repoman/master/.github/assets-config.json';
+            const response = yield http.get(url);
+            if (response.message.statusCode !== 200) {
+                throw new Error(`failed to download from "${url}". Code(${response.message.statusCode}) Message(${response.message.statusMessage})`);
+            }
+            const body = yield response.readBody();
+            const ret = JSON.parse(body);
+            const alias = ret.VersionAliases[version];
+            if (alias !== undefined) {
+                version = alias.TargetVersion;
+                core.debug(`using alias ${alias.TargetVersion}`);
+            }
+            else {
+                core.debug(`no such alias`);
+            }
+        }
+        catch (exc) {
+            throw new Error(`failed to get action config: ${exc.message}`);
+        }
     }
     let ext = 'tar.gz';
     let platform = os_1.default.platform().toString();
@@ -74,8 +99,11 @@ const getAssetURL = (version) => {
             arch = 'i386';
             break;
     }
-    return `${downloadURL}/${version}/repoman_${platform}_${arch}.${ext}`;
-};
+    return {
+        url: `https://github.com/moul/repoman/releases/download/${version}/repoman_${platform}_${arch}.${ext}`,
+        version
+    };
+});
 const execShellCommand = util_1.promisify(child_process_1.exec);
 const printOutput = (res) => {
     if (res.stdout) {
@@ -97,12 +125,12 @@ function run() {
             // download repoman
             core.info(`Installing repoman ${version}...`);
             const downloadStartedAt = Date.now();
-            const assetURL = getAssetURL(version);
-            core.info(`Downloading ${assetURL}`);
-            const archivePath = yield tc.downloadTool(assetURL);
+            const asset = yield getAsset(version);
+            core.info(`Downloading ${asset.url} (${asset.version})`);
+            const archivePath = yield tc.downloadTool(asset.url);
             let extractedDir = '';
             let repl = /\.tar\.gz$/;
-            if (assetURL.endsWith('zip')) {
+            if (asset.url.endsWith('zip')) {
                 extractedDir = yield tc.extractZip(archivePath, process.env.HOME);
                 repl = /\.zip$/;
             }
@@ -113,7 +141,7 @@ function run() {
                 }
                 extractedDir = yield tc.extractTar(archivePath, process.env.HOME, execArgs);
             }
-            const urlParts = assetURL.split(`/`);
+            const urlParts = asset.url.split(`/`);
             const dirName = urlParts[urlParts.length - 1].replace(repl, ``);
             const repomanPath = path_1.default.join(extractedDir, dirName, `repoman`);
             core.info(`Installed repoman into ${repomanPath} in ${Date.now() - downloadStartedAt}ms`);
