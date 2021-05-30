@@ -9,7 +9,7 @@ const downloadURL = 'https://github.com/moul/repoman/releases/download'
 
 const getAssetURL = (version: string): string => {
   if (version === 'latest') {
-    version = 'v1.4.3' // FIXME: make dynamic
+    version = 'v1.4.4' // FIXME: make dynamic
   }
   let ext = 'tar.gz'
   let platform = os.platform().toString()
