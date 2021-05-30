@@ -36,7 +36,9 @@ jobs:
           - go-binary-docker
           - go-binary
           - go-library
-          # TODO: non-git, dirty, non-bin, non-docker, etc
+          - go-nogomod
+          - empty
+          # TODO: non-git, dirty, etc
     runs-on: ${{ matrix.os }}-latest
     steps:
       - uses: actions/checkout@v2
