@@ -34,6 +34,8 @@ jobs:
           - latest
         sample:
           - go-binary-docker
+          - go-binary
+          - go-library
           # TODO: non-git, dirty, non-bin, non-docker, etc
     runs-on: ${{ matrix.os }}-latest
     steps:
