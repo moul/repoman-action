@@ -4,12 +4,45 @@ import path from 'path'
 import os from 'os'
 import {promisify} from 'util'
 import {exec} from 'child_process'
+import * as httpm from '@actions/http-client'
 
-const downloadURL = 'https://github.com/moul/repoman/releases/download'
+type AssetRes = {
+  url: string
+  version: string
+}
 
-const getAssetURL = (version: string): string => {
-  if (version === 'latest') {
-    version = 'v1.4.4' // FIXME: make dynamic
+const getAsset = async (version: string): Promise<AssetRes> => {
+  const versionRe = /^v(\d+)(?:\.(\d+))?$/
+  if (version === 'latest' || version.match(versionRe)) {
+    core.debug(
+      `version is set to ${version}, getting the latest version from assets-config.json`
+    )
+    const http = new httpm.HttpClient(`moul/repoman-action`, [], {
+      allowRetries: true,
+      maxRetries: 5
+    })
+    try {
+      const url =
+        'https://raw.githubusercontent.com/moul/repoman/master/.github/assets-config.json'
+      const response: httpm.HttpClientResponse = await http.get(url)
+      if (response.message.statusCode !== 200) {
+        throw new Error(
+          `failed to download from "${url}". Code(${response.message.statusCode}) Message(${response.message.statusMessage})`
+        )
+      }
+
+      const body = await response.readBody()
+      const ret = JSON.parse(body)
+      const alias = ret.VersionAliases[version]
+      if (alias !== undefined) {
+        version = alias.TargetVersion
+        core.debug(`using alias ${alias.TargetVersion}`)
+      } else {
+        core.debug(`no such alias`)
+      }
+    } catch (exc) {
+      throw new Error(`failed to get action config: ${exc.message}`)
+    }
   }
   let ext = 'tar.gz'
   let platform = os.platform().toString()
@@ -36,7 +69,10 @@ const getAssetURL = (version: string): string => {
       break
   }
 
-  return `${downloadURL}/${version}/repoman_${platform}_${arch}.${ext}`
+  return {
+    url: `https://github.com/moul/repoman/releases/download/${version}/repoman_${platform}_${arch}.${ext}`,
+    version
+  }
 }
 
 const execShellCommand = promisify(exec)
@@ -69,12 +105,12 @@ async function run(): Promise<void> {
     // download repoman
     core.info(`Installing repoman ${version}...`)
     const downloadStartedAt = Date.now()
-    const assetURL: string = getAssetURL(version)
-    core.info(`Downloading ${assetURL}`)
-    const archivePath = await tc.downloadTool(assetURL)
+    const asset: AssetRes = await getAsset(version)
+    core.info(`Downloading ${asset.url} (${asset.version})`)
+    const archivePath = await tc.downloadTool(asset.url)
     let extractedDir = ''
     let repl = /\.tar\.gz$/
-    if (assetURL.endsWith('zip')) {
+    if (asset.url.endsWith('zip')) {
       extractedDir = await tc.extractZip(archivePath, process.env.HOME)
       repl = /\.zip$/
     } else {
@@ -88,7 +124,7 @@ async function run(): Promise<void> {
         execArgs
       )
     }
-    const urlParts = assetURL.split(`/`)
+    const urlParts = asset.url.split(`/`)
     const dirName = urlParts[urlParts.length - 1].replace(repl, ``)
     const repomanPath = path.join(extractedDir, dirName, `repoman`)
     core.info(

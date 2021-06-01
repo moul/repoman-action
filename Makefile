@@ -2,12 +2,12 @@ all: deps
 	npm run all
 .PHONY: all
 
-package:
+package: fmt lint
 	npm run build
 	npm run package
 .PHONY: package
 
-test:
+test: lint
 	npm run build
 	npm test
 .PHONY: test
