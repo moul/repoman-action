@@ -1,3 +1,3 @@
 module moul.io/repoman-action/_samples/go-binary-docker
 
-go 1.16
+go 1.18
